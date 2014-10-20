@@ -6,6 +6,7 @@ namespace :load do
     set :unicorn_options, -> { "" }
     set :unicorn_rack_env, -> { fetch(:rails_env) == "development" ? "development" : "deployment" }
     set :unicorn_restart_sleep_time, 3
+    set :unicorn_pid_user, -> { "user" }
   end
 end
 
@@ -100,6 +101,17 @@ namespace :unicorn do
       within current_path do
         info "removing worker"
         execute :kill, "-s TTOU", pid
+      end
+    end
+  end
+
+  desc "Generate unicorn's service file"
+  task :generate_service_file do
+    on roles(fetch(:unicorn_roles)) do
+      within current_path do
+        info "generating unicorn's service file"
+          StringIO.new(File.read("tmp/unicorn_#{fetch(:application)}"), 'w') { |file| file.write UnicornInitTemplate.new.generate_unicorn_init_file fetch(:working_directory), 
+            fetch(:unicorn_pid), fetch(:unicorn_config_path), fetch(:rails_env), fetch(:unicorn_pid_user))) }
       end
     end
   end
